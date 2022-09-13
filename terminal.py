@@ -26,7 +26,9 @@ class BurpExtender(IBurpExtender, ITab):
 
     def getUiComponent(self):
         panel = JPanel()
-        panel.setLayout(BoxLayout(panel, BoxLayout.Y_AXIS))
+        panel.setLayout(GridBagLayout())
+        
+        #panel.setLayout(BoxLayout(panel, BoxLayout.Y_AXIS))
         
         self.textarea1 = JTextArea()
         self.textarea2 = JTextArea()
@@ -45,40 +47,78 @@ class BurpExtender(IBurpExtender, ITab):
         self.output.add(self.output_label)
         self.output.add(JScrollPane(self.textarea2))
         self.splitted = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, self.editor, self.output)
-        panel.add(self.splitted)
+        
+
+        c = GridBagConstraints()
+        c.gridy = 0
+        c.gridx = 0
+        c.weighty = 2
+        c.fill = GridBagConstraints.BOTH
+        panel.add(self.splitted,c)
         self.splitted.setAlignmentX(Component.CENTER_ALIGNMENT)
         self.splitted.setResizeWeight(0.5)
 
 
+        self.command_panel = JPanel()
+        self.command_panel.setLayout(GridBagLayout())
+        
+
         self.command_box = JTextField("Command")
-        self.command_box.setAlignmentX(Component.CENTER_ALIGNMENT)
+        #self.command_box.setAlignmentX(Component.CENTER_ALIGNMENT)
         self.command_button = JButton("Run Command", actionPerformed = self.run_command)
         self.editor_button= JButton("Run Script", actionPerformed = self.run_script)
-        self.command_panel = JPanel()
-        self.command_box.setAlignmentX(Component.CENTER_ALIGNMENT)
-        self.command_panel.add(JScrollPane(self.command_box))
-        self.command_panel.add(self.command_button)
-        self.command_panel.add(self.editor_button)
-
-
         self.combo_model = DefaultComboBoxModel()
         self.combo_model.addElement("OS")
         self.combo_model.addElement("Python")
-
         self.combo = JComboBox(self.combo_model)
-        self.command_panel.add(self.combo)
 
 
+        c.gridx = 3
+        
+        c.fill = GridBagConstraints.HORIZONTAL
+        c.weighty = 0
+        self.command_panel.add(self.combo, c)
 
-        panel.add(self.command_panel)
+        c.gridx = 2
+        self.command_panel.add(self.editor_button, c)
 
-        self.command_panel.setAlignmentX(Component.CENTER_ALIGNMENT)
+        c.gridx = 1
+        c.fill = GridBagConstraints.HORIZONTAL
+        self.command_panel.add(self.command_button, c)
+        
+        c.gridx = 0
+        c.weightx = 1
+        c.fill = GridBagConstraints.HORIZONTAL
+        self.command_panel.add(JScrollPane(self.command_box),c)
+
+
+        c.gridy += 1
+
+
+        panel.add(self.command_panel, c)
+
         return panel
 
     def run_command(self, event):
-        cmd = self.command_box.getText()
-        output=subprocess.check_output(cmd, shell=True).decode('ISO-8859-1')
-        self.textarea2.setText(output)
+        self.command_type = self.combo.getSelectedItem()
+
+        self.cmd = self.command_box.getText()
+        if self.command_type == 'OS':
+            output = subprocess.check_output(self.cmd, shell=True).decode('ISO-8859-1')
+            self.textarea2.setText(output)
+        elif self.command_type == 'Python':
+            print(self.cmd)
+            print(type(self.cmd))
+            try:
+                output = eval(self.cmd)
+            except:
+                pass
+                #for some reason, exec gives errors when loading the extension
+                #output = exec(self.cmd)
+
+            self.textarea2.setText(str(output))
+
+
 
     def run_script(self, event):
         script = self.textarea1.getText()
