@@ -107,16 +107,39 @@ class BurpExtender(IBurpExtender, ITab):
             output = subprocess.check_output(self.cmd, shell=True).decode('ISO-8859-1')
             self.textarea2.setText(output)
         elif self.command_type == 'Python':
-            print(self.cmd)
-            print(type(self.cmd))
-            try:
-                output = eval(self.cmd)
-            except:
-                pass
-                #for some reason, exec gives errors when loading the extension
-                #output = exec(self.cmd)
 
-            self.textarea2.setText(str(output))
+            try:
+                cmd_output=subprocess.check_output(['python','-c',self.cmd],shell=True)
+            except:
+                try:
+                    cmd_output=subprocess.check_output(['python3','-c',self.cmd],shell=True)
+                except:
+                    found = False
+                    for path in jython_paths:
+                        if '.jar' in path:
+                            path = path.split('.jar')[0] + '.jar'
+                            cmd_output=subprocess.check_output(['java','-jar',path,'-c',self.cmd],shell=True)
+                            found = True
+                            break
+                    if not found:
+                        
+                        try:
+                            f = open("selected_jython_path.txt","r")
+                            path = f.read()
+                            f.close()
+                            cmd_output=subprocess.check_output(['java','-jar',path,'-c',self.cmd],shell=True)
+                        except:
+                            fc = JFileChooser()
+                            result = fc.showOpenDialog( None )
+                            if result == JFileChooser.APPROVE_OPTION :
+                                path = str(fc.getSelectedFile())
+    
+                            f = open("selected_jython_path.txt","w")
+                            f.write(path)
+                            f.close()
+    
+                            cmd_output=subprocess.check_output(['java','-jar',path,'temp.py'],shell=True)
+        self.textarea2.setText(str(cmd_output))
 
 
 
@@ -138,7 +161,7 @@ class BurpExtender(IBurpExtender, ITab):
             except:
                 found = False
                 for path in jython_paths:
-                    if '.jxar' in path:
+                    if '.jar' in path:
                         # esto es un poco chapuza, no se si siempre funcionara
                         path = path.split('.jar')[0] + '.jar'
                         script_output=subprocess.check_output(['java','-jar',path,'temp.py'],shell=True)
